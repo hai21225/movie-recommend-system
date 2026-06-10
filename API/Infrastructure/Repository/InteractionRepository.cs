@@ -52,4 +52,46 @@ public class InteractionRepository: IInteractionRepository
             .Select(ui => ui.UserId)
             .ToListAsync();
     }
+
+    public async Task<List<string>> GetLikedShowIdsByUser(int userId)
+    {
+        return await _context.UserInteractions
+            .Where(ui => ui.UserId == userId && ui.Liked)
+            .Select(ui => ui.ShowId)
+            .ToListAsync();
+    }
+
+    public async Task<bool> UserHasInteractions(int userId)
+    {
+        var hasInteractions = await _context.UserInteractions.AnyAsync(ui => ui.UserId == userId);
+        return hasInteractions;
+    }
+
+    public async Task<List<int>> GetUsersWhoLikedContentsInClusters(List<FavoriteClusterDto> favoriteClusters, int currentUserId)
+    {
+        var query = _context.UserInteractions
+        .Where(ui => ui.UserId != currentUserId && ui.Liked)
+        .Join(
+            _context.Contents,
+            ui => ui.ShowId,
+            c => c.ShowId,
+            (ui, c) => new
+            {
+                ui.UserId,
+                c.ClusterId,
+                c.ContentType
+            });
+        var clusterKeys = favoriteClusters.Select(fc => $"{fc.ContentType}_{fc.ClusterId}").ToList();
+
+        var result = await query
+            .Where(x =>clusterKeys.Contains(
+                    x.ContentType + "_" + x.ClusterId))
+            .GroupBy(x => x.UserId)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .Take(15)
+            .ToListAsync();
+
+        return result;
+    }
 }

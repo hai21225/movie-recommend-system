@@ -10,7 +10,7 @@
 
     public Task<bool> UserHasInteractions(int userId);
 
-    public Task<List<int>> GetLikedShowIdsByUser(List<int> userIds);
+    public Task<List<string>> GetLikedShowIdsByUser(int userIds);
 
-    public Task<List<int>> GetUsersWhoLikedContentsInClusters(List<int> favoriteClusterIds, int userId);
+    public Task<List<int>> GetUsersWhoLikedContentsInClusters(List<FavoriteClusterDto> favoriteClusters, int userId);
 }

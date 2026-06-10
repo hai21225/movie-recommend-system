@@ -47,4 +47,46 @@ public class ContentRepository : IContentRepository
             .Take(limit)
             .ToListAsync();
     }
+
+    public async Task<List<FavoriteClusterDto>> GetFavoriteClusters(List<string> likedShowIds)
+    {
+        return await _context.Contents
+            .Where(c => likedShowIds.Contains(c.ShowId))
+            .GroupBy(c => new
+            {
+                c.ClusterId,
+                c.ContentType
+            })
+            .OrderByDescending(g => g.Count())
+            .Select(g => new FavoriteClusterDto
+            {
+                ClusterId = g.Key.ClusterId,
+                ContentType = g.Key.ContentType
+            })
+            .Take(2)
+            .ToListAsync();
+    }
+
+    public async Task<List<Content>> GetContentsLikedByUsers(List<FavoriteClusterDto> favoriteClusters, List<int> similarUserIds, int currentUserId, int limit = 20)
+    {
+        var clusterKeys = favoriteClusters
+    .Select(fc => $"{fc.ContentType}_{fc.ClusterId}")
+    .ToList();
+
+        return await _context.Contents
+.Where(c =>
+    clusterKeys.Contains(
+        c.ContentType + "_" + c.ClusterId)
+    &&
+    !_context.UserInteractions.Any(
+        ui => ui.UserId == currentUserId &&
+              ui.ShowId == c.ShowId))
+        .OrderByDescending(c =>
+            _context.UserInteractions.Count(ui =>
+                similarUserIds.Contains(ui.UserId)
+                && ui.ShowId == c.ShowId
+                && ui.Liked))
+        .Take(limit)
+        .ToListAsync();
+    }
 }

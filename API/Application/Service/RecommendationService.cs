@@ -43,24 +43,61 @@ public class RecommendationService : IRecommendationService
 
     public async Task<List<ContentDto>> GetHomeFeedRecommendations(int userId, int limit = 20)
     {
-        //bool hasInteractions = await _interactionRepository.UserHasInteractions(userId);
+        bool hasInteractions = await _interactionRepository.UserHasInteractions(userId);
 
-        //if (!hasInteractions)
-        //{
-        //    return await GetRecomendationsByPreferredGenres(userId, limit);
-        //}
+        if (!hasInteractions)
+        {
+            return await GetRecomendationsByPreferredGenres(userId, limit);
+        }
 
-        ////list showid user liked
-        //var userLikedShowIds = await _interactionRepository.GetLikedShowIdsByUser(userId);
+        //list showid user liked
+        var userLikedShowIds = await _interactionRepository.GetLikedShowIdsByUser(userId);
 
-        ////use list showid to get cluster id
-        //var favoriteClusterIds = await _contentRepository.GetFavoriteClusterIds(userLikedShowIds);
+        //use list showid to get cluster id
+        var favoriteClusters = await _contentRepository.GetFavoriteClusters(userLikedShowIds);
 
-        //var similarUserIds = await _interactionRepository
-        //    .GetUsersWhoLikedContentsInClusters(favoriteClusterIds, userId);
+        var similarUserIds = await _interactionRepository
+            .GetUsersWhoLikedContentsInClusters(favoriteClusters, userId);
 
-        //var homeFeedContents = await _contentRepository
-        //    .GetContentsLikedByUsers(favoriteClusterIds,similarUserIds,limit);
+        var homeFeedContents = await _contentRepository
+            .GetContentsLikedByUsers(favoriteClusters, similarUserIds, limit);
+
+        var interactedShowIds = (await _interactionRepository.GetUserInteractionHistory(userId))
+            .Select(x => x.ShowId)
+            .ToHashSet();
+
+        homeFeedContents = homeFeedContents.Where(c => !interactedShowIds.Contains(c.ShowId)).ToList();
+
+        var homefeed=homeFeedContents.Select(c => new ContentDto
+        {
+            ShowId = c.ShowId,
+            Title = c.Title,
+            ContentType = c.ContentType,
+            ClusterId = c.ClusterId
+        }).ToList();
+
+        if (homefeed.Count < limit)
+        {
+            var remeaningLimit = limit - homefeed.Count;
+            var backupPoppulaerContents = await GetGlobalPopularContents(userId, remeaningLimit);
+            var existingIds= homeFeedContents.Select(c => c.ShowId).ToHashSet();
+            foreach (var item in backupPoppulaerContents)
+            {
+                if (!existingIds.Contains(item.ShowId))
+                {
+                    if (homefeed.Count >= limit)
+                        break;
+                    homefeed.Add(new ContentDto
+                    {
+                        ShowId = item.ShowId,
+                        Title = item.Title,
+                        ContentType = item.ContentType,
+                        ClusterId = item.ClusterId
+                    });
+                }
+            }
+        }
+        return homefeed.Take(limit).ToList();
     }
 
     public async Task<List<ContentDto>> GetRecomendationsByPreferredGenres(int userId, int limit = 10)

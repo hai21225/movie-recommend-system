@@ -8,6 +8,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IContentRepository, ContentRepository>();
+builder.Services.AddScoped<IGenreRepository, GenreRepository>();
+builder.Services.AddScoped<IInteractionRepository, InteractionRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IGenreService, GenreService>();
+builder.Services.AddScoped<IInteractionService, InteractionService>();
+
 
 
 
