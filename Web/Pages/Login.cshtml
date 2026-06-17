@@ -1,0 +1,40 @@
+@page
+@model Web.Pages.LoginModel
+@{
+    ViewData["Title"] = "Đăng Nhập";
+}
+
+<div class="auth-container">
+    <div class="card auth-card text-white">
+        
+        <h2 class="text-center fw-bold text-danger mb-4">Đăng Nhập</h2>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger p-2 small mb-3" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i> @Model.ErrorMessage
+            </div>
+        }
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label text-muted small">Tên tài khoản (Username)</label>
+                <input type="text" asp-for="Username" class="form-control form-input-custom" required />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted small">Mật khẩu (Password)</label>
+                <input type="password" asp-for="Password" class="form-control form-input-custom" required />
+            </div>
+
+            <button type="submit" class="btn btn-netflix w-100 shadow-sm mb-3">
+                Đăng Nhập
+            </button>
+        </form>
+
+        <div class="text-center mt-3 text-muted small">
+            Bạn mới tham gia hệ thống? <a href="/Register" class="text-white fw-bold text-decoration-none">Đăng ký ngay</a>
+        </div>
+
+    </div>
+</div>

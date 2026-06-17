@@ -1,25 +1,32 @@
+using Web.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddRazorPages();
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Đăng ký HttpClient kết nối tới Backend API
+builder.Services.AddHttpClient<ApiService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5281"); 
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// 💥 BẮT BUỘC PHẢI THÊM DÒNG NÀY VÀO ĐỂ BẬT CSS/JS RIÊNG
+app.UseStaticFiles(); 
+
+app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapRazorPages();
 
 app.Run();

@@ -1,6 +1,9 @@
 @Web_HostAddress = http://localhost:5006
 
-GET {{Web_HostAddress}}/weatherforecast/
-Accept: application/json
+### Get Home Page
+GET {{Web_HostAddress}}/
+Accept: text/html
 
-###
+### Get Index Page
+GET {{Web_HostAddress}}/Index
+Accept: text/html
