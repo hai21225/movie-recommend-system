@@ -4,47 +4,53 @@
     ViewData["Title"] = "Trang Chủ - Netflix Recommender";
 }
 
-<nav class="navbar navbar-expand-lg netflix-navbar sticky-top">
-    <div class="container-fluid">
-        <a class="navbar-brand navbar-brand-custom" href="/">NETFLIX</a>
+<div class="hero-carousel-container">
+    <div id="netflixHeroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="4000">
         
-        <button class="navbar-collapse-btn navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#netflixNavbarContent">
-            <i class="bi bi-list fs-3"></i>
-        </button>
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#netflixHeroCarousel" data-bs-slide-to="0" class="active" aria-current="true"></button>
+            <button type="button" data-bs-target="#netflixHeroCarousel" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#netflixHeroCarousel" data-bs-slide-to="2"></button>
+        </div>
 
-        <div class="collapse navbar-collapse" id="netflixNavbarContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0 m-lg-0 ps-lg-3">
-                <li class="nav-item"><a class="nav-link nav-link-custom active" href="/">Trang chủ</a></li>
-                <li class="nav-item"><a class="nav-link nav-link-custom" href="#">Phim bộ</a></li>
-                <li class="nav-item"><a class="nav-link nav-link-custom" href="#">Phim lẻ</a></li>
-                <li class="nav-item"><a class="nav-link nav-link-custom" href="#">Mới & Phổ biến</a></li>
-            </ul>
+        <div class="carousel-inner">
+            <div class="carousel-item carousel-item-custom active">
+                <div class="slide-bg-blur" style="background-image: url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop');"></div>
+                <div class="slide-overlay"></div>
+                <div class="slide-content">
+                    <h1 class="slide-title">Stranger Things</h1>
+                    <p class="slide-desc mb-4">Khi một cậu bé mất tích, một thị trấn nhỏ phơi bày một bí ẩn liên quan đến các thí nghiệm bí mật, lực lượng siêu nhiên kinh hoàng và một cô bé kỳ lạ.</p>
+                    <div class="d-flex gap-2"><button class="btn btn-netflix-primary px-4"><i class="bi bi-play-fill"></i> Xem ngay</button></div>
+                </div>
+            </div>
 
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-                <form class="d-flex" role="search">
-                    <input class="form-control search-box-custom" type="search" placeholder="Tìm tên phim..." aria-label="Search">
-                    <button class="btn search-btn-custom" type="submit"><i class="bi bi-search"></i></button>
-                </form>
+            <div class="carousel-item carousel-item-custom">
+                <div class="slide-bg-blur" style="background-image: url('https://images.unsplash.com/photo-1616530940355-351facd9524b?q=80&w=1935&auto=format&fit=crop');"></div>
+                <div class="slide-overlay"></div>
+                <div class="slide-content">
+                    <h1 class="slide-title">Wednesday</h1>
+                    <p class="slide-desc mb-4">Thông minh, mỉa mai và có chút vô cảm, Wednesday Addams điều tra một vụ án mạng hàng loạt trong khi kết bạn — và tạo ra kẻ thù mới — tại Học viện Nevermore.</p>
+                    <div class="d-flex gap-2"><button class="btn btn-netflix-primary px-4"><i class="bi bi-play-fill"></i> Xem ngay</button></div>
+                </div>
+            </div>
 
-                <div class="auth-buttons d-flex gap-2">
-                    <a href="/Login" class="btn btn-netflix-secondary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập</a>
-                    <a href="/Register" class="btn btn-netflix-primary btn-sm"><i class="bi bi-person-plus me-1"></i> Đăng ký</a>
+            <div class="carousel-item carousel-item-custom">
+                <div class="slide-bg-blur" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1968&auto=format&fit=crop');"></div>
+                <div class="slide-overlay"></div>
+                <div class="slide-content">
+                    <h1 class="slide-title">The Witcher</h1>
+                    <p class="slide-desc mb-4">Geralt xứ Rivia, một thợ săn quái vật đột biến, hành trình qua Lục địa để tìm kiếm vị trí của mình trong một thế giới nơi con người thường tàn ác hơn dã thú.</p>
+                    <div class="d-flex gap-2"><button class="btn btn-netflix-primary px-4"><i class="bi bi-play-fill"></i> Xem ngay</button></div>
                 </div>
             </div>
         </div>
-    </div>
-</nav>
 
-<div class="hero-banner">
-    <div class="hero-content">
-        <h1 class="hero-title">Stranger Things</h1>
-        <p class="text-light fs-5 mb-4 shadow-sm" style="text-shadow: 1px 1px 4px rgba(0,0,0,0.8);">
-            Khi một cậu bé mất tích, một thị trấn nhỏ phơi bày một bí ẩn liên quan đến các thí nghiệm bí mật, lực lượng siêu nhiên kinh hoàng và một cô bé kỳ lạ.
-        </p>
-        <div class="d-flex gap-3">
-            <button class="btn btn-netflix-primary btn-lg px-4 py-2"><i class="bi bi-play-fill me-1"></i> Phát ngay</button>
-            <button class="btn btn-netflix-secondary btn-lg px-4 py-2"><i class="bi bi-info-circle me-1"></i> Thông tin thêm</button>
-        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#netflixHeroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#netflixHeroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        </button>
     </div>
 </div>
 
@@ -64,7 +70,7 @@
             <div class="alert alert-danger bg-dark text-white border-danger d-flex align-items-center rounded-3 p-3 shadow-lg mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill text-danger fs-4 me-3"></i>
                 <div>
-                    <h6 class="fw-bold mb-1">Sự cố kết nối hệ thống dữ liệu</h6>
+                    
                     <span class="small text-muted">@Model.ErrorMessage</span>
                 </div>
             </div>
@@ -115,13 +121,11 @@
                                             <h6 class="movie-title-custom text-truncate" title="@movie.Title">
                                                 @movie.Title
                                             </h6>
-                                            
                                             <div class="movie-meta-custom d-flex justify-content-between mt-2 mb-3">
                                                 <span><i class="bi bi-calendar3 me-1"></i> @movie.ReleaseYear</span>
                                                 <span><i class="bi bi-hourglass-split me-1"></i> @movie.Duration</span>
                                             </div>
                                         </div>
-                                        
                                         <div>
                                             <a href="/MovieDetail/@movie.Id" class="btn btn-card-action w-100 btn-sm text-center">
                                                 <i class="bi bi-eye-fill me-1"></i> Chi tiết

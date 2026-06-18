@@ -36,27 +36,30 @@ namespace Web.Pages
                 return Page();
             }
 
-            // Kiểm tra xem mật khẩu nhập lại có khớp nhau không
             if (Password != ConfirmPassword)
             {
                 ErrorMessage = "Mật khẩu xác nhận không trùng khớp!";
                 return Page();
             }
 
-            // Đóng gói dữ liệu DTO gửi sang API Đăng ký của nhóm bạn
-            var registerData = new { Username = Username, Password = Password };
+            // ĐÃ SỬA: Đóng gói đúng 3 trường dữ liệu khớp 100% với RegisterDto của Backend
+            var registerData = new { 
+                Username = Username, 
+                Password = Password, 
+                ConfirmPassword = ConfirmPassword 
+            };
 
             // Gọi hàm POST sang cổng Backend API
             var isSuccess = await _apiService.PostAsync("/api/auth/register", registerData);
 
             if (isSuccess)
             {
-                // Nếu đăng ký thành công -> Chuyển hướng người dùng sang trang Login luôn để họ đăng nhập
+                // Đăng ký thành công vào DB -> Chuyển hướng sang Login
                 return RedirectToPage("Login");
             }
             else
             {
-                ErrorMessage = "Tên tài khoản đã tồn tại hoặc hệ thống gặp sự cố!";
+                ErrorMessage = "Tên tài khoản đã tồn tại hoặc đăng ký thất bại!";
                 return Page();
             }
         }
