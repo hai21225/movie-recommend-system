@@ -46,7 +46,7 @@ namespace Web.Pages
                 HttpContext.Session.SetString("Username", Username);
                 
                 // Thành công -> Quay về trang chủ
-                return RedirectToPage("Index");
+                return RedirectToPage("/Index");
             }
             else
             {

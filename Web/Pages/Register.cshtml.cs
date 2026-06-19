@@ -55,7 +55,7 @@ namespace Web.Pages
             if (isSuccess)
             {
                 // Đăng ký thành công vào DB -> Chuyển hướng sang Login
-                return RedirectToPage("Login");
+                return RedirectToPage("/Login");
             }
             else
             {

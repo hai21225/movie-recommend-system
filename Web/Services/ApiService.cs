@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace Web.Services
 {
@@ -13,10 +12,10 @@ namespace Web.Services
         public ApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _httpClient.Timeout = TimeSpan.FromSeconds(4);
+            // ĐÃ SỬA: Tăng thời gian chờ lên 30 giây để Database có thời gian khởi động
+            _httpClient.Timeout = TimeSpan.FromSeconds(30); 
         }
 
-        // Hàm GET cũ giữ nguyên
         public async Task<T?> GetAsync<T>(string endpoint)
         {
             try
@@ -28,22 +27,38 @@ namespace Web.Services
                 }
                 return default;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[LỖI GET] {ex.Message}");
                 return default; 
             }
         }
 
-        // HÀM POST MỚI BỔ SUNG: Dùng để gửi dữ liệu lên API (Login, Thích phim...)
         public async Task<bool> PostAsync<T>(string endpoint, T data)
         {
             try
             {
                 var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+                
+                // IN LỖI ĐỎ RA MÀN HÌNH NẾU BACKEND TỪ CHỐI
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorDetails = await response.Content.ReadAsStringAsync();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"\n[BACKEND TỪ CHỐI] Lỗi {response.StatusCode} tại {endpoint}");
+                    Console.WriteLine($"Chi tiết: {errorDetails}\n");
+                    Console.ResetColor();
+                }
+                
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // IN LỖI VÀNG RA MÀN HÌNH NẾU BỊ RỚT MẠNG HOẶC TIMEOUT
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"\n[LỖI KẾT NỐI API] Không thể gửi tới {endpoint}");
+                Console.WriteLine($"Lý do: {ex.Message}\n");
+                Console.ResetColor();
                 return false;
             }
         }
