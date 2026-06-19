@@ -17,7 +17,7 @@ builder.Services.AddSession(options =>
 // Đăng ký HttpClient kết nối tới Backend API (ĐÃ BỎ QUA LỖI SSL)
 builder.Services.AddHttpClient<ApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7049"); 
+    client.BaseAddress = new Uri("http://localhost:5281"); 
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true

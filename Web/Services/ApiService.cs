@@ -1,6 +1,8 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Web.Services
@@ -9,57 +11,93 @@ namespace Web.Services
     {
         private readonly HttpClient _httpClient;
 
+        // TIẾP NHẬN HTTPCLIENT TỪ PROGRAM.CS ĐÃ ĐƯỢC CẤU HÌNH ĐỊA CHỈ BASEURL = 5281
         public ApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            // ĐÃ SỬA: Tăng thời gian chờ lên 30 giây để Database có thời gian khởi động
-            _httpClient.Timeout = TimeSpan.FromSeconds(30); 
         }
 
         public async Task<T?> GetAsync<T>(string endpoint)
         {
             try
             {
+                // Chỉ truyền endpoint (VD: /api/genre), KHÔNG NỐI THÊM ĐỊA CHỈ NÀO KHÁC VÀO ĐÂY
                 var response = await _httpClient.GetAsync(endpoint);
+                
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<T>();
+                    var content = await response.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrEmpty(content))
+                    {
+                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                        return JsonSerializer.Deserialize<T>(content, options);
+                    }
                 }
                 return default;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LỖI GET] {ex.Message}");
-                return default; 
+                Console.WriteLine($"\n[LỖI GET] {ex.Message}\n");
+                return default;
             }
         }
 
-        public async Task<bool> PostAsync<T>(string endpoint, T data)
+        // ĐÃ CHỈNH SỬA LẠI HÀM POST ĐỂ GỬI ĐÚNG ĐỊA CHỈ VÀ TRẢ VỀ STATUS
+        public async Task<bool> PostAsync(string endpoint, object data)
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(endpoint, data);
+                var jsonContent = new StringContent(
+                    JsonSerializer.Serialize(data),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                Console.WriteLine($"[DEBUG] Đang gửi POST tới: {_httpClient.BaseAddress}{endpoint}");
+
+                // Chỉ truyền chuỗi endpoint (VD: /api/auth/register)
+                var response = await _httpClient.PostAsync(endpoint, jsonContent);
                 
-                // IN LỖI ĐỎ RA MÀN HÌNH NẾU BACKEND TỪ CHỐI
-                if (!response.IsSuccessStatusCode)
+                if(!response.IsSuccessStatusCode)
                 {
-                    var errorDetails = await response.Content.ReadAsStringAsync();
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"\n[BACKEND TỪ CHỐI] Lỗi {response.StatusCode} tại {endpoint}");
-                    Console.WriteLine($"Chi tiết: {errorDetails}\n");
-                    Console.ResetColor();
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[LỖI TỪ API] {errorMsg}");
                 }
-                
+
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                // IN LỖI VÀNG RA MÀN HÌNH NẾU BỊ RỚT MẠNG HOẶC TIMEOUT
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"\n[LỖI KẾT NỐI API] Không thể gửi tới {endpoint}");
-                Console.WriteLine($"Lý do: {ex.Message}\n");
-                Console.ResetColor();
+                Console.WriteLine($"\n[LỖI KẾT NỐI API POST] Không thể gửi tới {endpoint}\nLý do: {ex.Message}\n");
                 return false;
+            }
+        }
+
+        // Bổ sung hàm PostAsync trả về object nếu sau này Login cần lấy Token hoặc UserId
+        public async Task<T?> PostWithResultAsync<T>(string endpoint, object data)
+        {
+            try
+            {
+                var jsonContent = new StringContent(
+                    JsonSerializer.Serialize(data),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await _httpClient.PostAsync(endpoint, jsonContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    return JsonSerializer.Deserialize<T>(content, options);
+                }
+                return default;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\n[LỖI POST] {ex.Message}\n");
+                return default;
             }
         }
     }
