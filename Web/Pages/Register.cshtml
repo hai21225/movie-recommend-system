@@ -1,0 +1,46 @@
+@page
+@model Web.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Tham gia Netflix - Đăng Ký";
+}
+
+<div class="auth-wrapper">
+    
+    <div class="card auth-card-premium">
+        
+        <h2 class="auth-header-title">Đăng Ký</h2>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger bg-dark text-white border-danger p-2 small mb-4 rounded d-flex align-items-center" role="alert">
+                <i class="bi bi-x-circle-fill text-danger me-2"></i> @Model.ErrorMessage
+            </div>
+        }
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="auth-label-small">Tên tài khoản (Username)</label>
+                <input type="text" asp-for="Username" class="form-control auth-input-custom" placeholder="Tạo tên đăng nhập của bạn..." required />
+            </div>
+
+            <div class="mb-3">
+                <label class="auth-label-small">Mật khẩu (Password)</label>
+                <input type="password" asp-for="Password" class="form-control auth-input-custom" placeholder="Tạo mật khẩu bảo mật..." required />
+            </div>
+
+            <div class="mb-4">
+                <label class="auth-label-small">Xác nhận mật khẩu (Confirm Password)</label>
+                <input type="password" asp-for="ConfirmPassword" class="form-control auth-input-custom" placeholder="Nhập lại mật khẩu phía trên..." required />
+            </div>
+
+            <button type="submit" class="btn btn-auth-submit">
+                Đăng Ký Ngay
+            </button>
+        </form>
+
+        <div class="text-start mt-4 auth-footer-text">
+            Bạn đã có tài khoản rồi? <a href="/Login" class="auth-link-highlight">Đăng nhập ngay</a>
+        </div>
+
+    </div>
+</div>

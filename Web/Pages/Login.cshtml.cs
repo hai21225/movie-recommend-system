@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Http; // Thư viện dùng cho Session
 using System.Threading.Tasks;
 using Web.Services;
 
@@ -9,7 +10,6 @@ namespace Web.Pages
     {
         private readonly ApiService _apiService;
 
-        // Bắt buộc dùng [BindProperty] để HTML có thể map dữ liệu qua thẻ asp-for
         [BindProperty]
         public string Username { get; set; } = string.Empty;
 
@@ -25,7 +25,6 @@ namespace Web.Pages
 
         public void OnGet()
         {
-            // Chạy khi người dùng truy cập vào trang Đăng nhập
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -35,20 +34,22 @@ namespace Web.Pages
                 return Page();
             }
 
-            // Đóng gói dữ liệu thành object gửi sang Backend API
+            // Đóng gói dữ liệu khớp với LoginDto của Backend
             var loginData = new { Username = Username, Password = Password };
 
-            // Gửi dữ liệu qua API
+            // Gửi dữ liệu qua API để check DB
             var isSuccess = await _apiService.PostAsync("/api/auth/login", loginData);
 
             if (isSuccess)
             {
+                // ĐÃ THÊM: Lưu Username vào Session để giữ đăng nhập cho chức năng Bình luận
+                HttpContext.Session.SetString("Username", Username);
+                
                 // Thành công -> Quay về trang chủ
-                return RedirectToPage("Index");
+                return RedirectToPage("/Index");
             }
             else
             {
-                // Thất bại -> Báo lỗi ra màn hình
                 ErrorMessage = "Tài khoản hoặc mật khẩu không chính xác!";
                 return Page();
             }
