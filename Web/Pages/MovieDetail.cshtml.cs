@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,10 +12,9 @@ using Web.Services;
 
 namespace Web.Pages
 {
-    // Tạo một class nhỏ để chứa cấu trúc Bình luận
     public class MovieComment
     {
-        public int MovieId { get; set; }
+        public string ShowId { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
@@ -27,11 +25,13 @@ namespace Web.Pages
         private readonly ApiService _apiService;
         private readonly IWebHostEnvironment _env;
 
-        public WebContentDto? Movie { get; set; } 
-        public List<WebContentDto> RecommendedMovies { get; set; } = new(); 
+        public WebContentDto? Movie { get; set; }
+        public List<WebContentDto> RecommendedMovies { get; set; } = new();
         public List<MovieComment> Comments { get; set; } = new();
+
         public string ErrorMessage { get; set; } = string.Empty;
         public bool IsLoggedIn { get; set; } = false;
+        public bool IsLiked { get; set; } = false;
         public string CurrentUser { get; set; } = "Khách";
 
         public MovieDetailModel(ApiService apiService, IWebHostEnvironment env)
@@ -40,48 +40,80 @@ namespace Web.Pages
             _env = env;
         }
 
-        public async Task<IActionResult> OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(string showId)
         {
-            if (id <= 0) return RedirectToPage("/Index");
+            if (string.IsNullOrWhiteSpace(showId))
+                return RedirectToPage("/Index");
 
-            // Kiểm tra trạng thái đăng nhập (Thay "Username" bằng key Session thật của nhóm bạn nếu cần)
             var sessionUser = HttpContext.Session?.GetString("Username");
+
             if (!string.IsNullOrEmpty(sessionUser) || User.Identity?.IsAuthenticated == true)
             {
                 IsLoggedIn = true;
                 CurrentUser = sessionUser ?? User.Identity?.Name ?? "Thành viên Netflix";
             }
 
+            var userId = HttpContext.Session?.GetInt32("UserId") ?? 1;
+
+            List<WebContentDto> homeFeed = new();
+
             try
             {
-                Movie = await _apiService.GetAsync<WebContentDto>($"/api/content/{id}");
-                if (Movie != null)
+                homeFeed = await _apiService.GetAsync<List<WebContentDto>>(
+                    $"/api/Recommendation/home-feed/{userId}?limit=100") ?? new();
+
+                Movie = homeFeed.FirstOrDefault(m => m.ShowId == showId);
+
+                if (Movie != null && !string.IsNullOrEmpty(Movie.ShowId))
                 {
-                    RecommendedMovies = await _apiService.GetAsync<List<WebContentDto>>($"/api/recommend/similar-content/{id}") ?? new();
+                    RecommendedMovies = await _apiService.GetAsync<List<WebContentDto>>(
+                        $"/api/Recommendation/similar/{Movie.ShowId}?limit=10") ?? new();
+
+                    if (!RecommendedMovies.Any())
+                    {
+                        RecommendedMovies = homeFeed
+                            .Where(m => m.ShowId != showId && m.DisplayType == Movie.DisplayType)
+                            .Take(10)
+                            .ToList();
+                    }
                 }
             }
-            catch { /* Lỗi API */ }
+            catch
+            {
+            }
 
-            if (Movie == null) LoadFallbackData(id);
-            if (Movie == null) ErrorMessage = "Không tìm thấy dữ liệu bộ phim.";
+            if (Movie == null)
+            {
+                LoadFallbackData(showId);
+            }
 
-            // Tải danh sách bình luận đã lưu của phim này
-            LoadComments(id);
+            if (Movie == null)
+            {
+                ErrorMessage = "Không tìm thấy dữ liệu bộ phim.";
+            }
+            else if (!string.IsNullOrEmpty(Movie.ShowId))
+            {
+                IsLiked = await _apiService.CheckIsLiked(userId, Movie.ShowId);
+            }
+
+            LoadComments(showId);
 
             return Page();
         }
 
-        // HÀM MỚI: Xử lý khi người dùng Gửi bình luận từ Form
-        public IActionResult OnPostAddComment(int id, string commentText)
+        public IActionResult OnPostAddComment(string showId, string commentText)
         {
-            if (string.IsNullOrWhiteSpace(commentText)) return RedirectToPage(new { id });
+            if (string.IsNullOrWhiteSpace(commentText))
+                return RedirectToPage(new { showId });
 
-            // Lấy tên người dùng đang đăng nhập
-            string username = HttpContext.Session?.GetString("Username") ?? User.Identity?.Name ?? "Thành viên Ẩn danh";
+            string username =
+                HttpContext.Session?.GetString("Username")
+                ?? User.Identity?.Name
+                ?? "Thành viên Ẩn danh";
 
             var newComment = new MovieComment
             {
-                MovieId = id,
+                ShowId = showId,
                 Username = username,
                 Text = commentText,
                 CreatedAt = DateTime.Now
@@ -89,25 +121,68 @@ namespace Web.Pages
 
             SaveCommentToJson(newComment);
 
-            // Tải lại trang sau khi bình luận xong
-            return RedirectToPage(new { id });
+            return RedirectToPage(new { showId });
         }
 
-        // --- CÁC HÀM XỬ LÝ LƯU TRỮ LOCAL ---
-        private void LoadComments(int movieId)
+        public async Task<IActionResult> OnPostToggleLikeAjax(string showId, bool currentIsLiked)
+        {
+            var userId = HttpContext.Session?.GetInt32("UserId");
+
+            if (userId == null || userId <= 0)
+            {
+                return new JsonResult(new
+                {
+                    success = false,
+                    message = "Bạn cần đăng nhập để thích phim."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(showId))
+            {
+                return new JsonResult(new
+                {
+                    success = false,
+                    message = "Không tìm thấy mã phim."
+                });
+            }
+
+            bool newStatus = !currentIsLiked;
+
+            bool success = await _apiService.SetLikeStatus(
+                userId.Value,
+                showId,
+                newStatus);
+
+            return new JsonResult(new
+            {
+                success,
+                newStatus
+            });
+        }
+
+        private void LoadComments(string showId)
         {
             try
             {
                 string filePath = Path.Combine(_env.WebRootPath, "data", "comments.json");
-                if (System.IO.File.Exists(filePath))
-                {
-                    string json = System.IO.File.ReadAllText(filePath);
-                    var allComments = JsonSerializer.Deserialize<List<MovieComment>>(json) ?? new List<MovieComment>();
-                    // Chỉ lấy bình luận của phim hiện tại, sắp xếp mới nhất lên đầu
-                    Comments = allComments.Where(c => c.MovieId == movieId).OrderByDescending(c => c.CreatedAt).ToList();
-                }
+
+                if (!System.IO.File.Exists(filePath))
+                    return;
+
+                string json = System.IO.File.ReadAllText(filePath);
+
+                var allComments =
+                    JsonSerializer.Deserialize<List<MovieComment>>(json)
+                    ?? new List<MovieComment>();
+
+                Comments = allComments
+                    .Where(c => c.ShowId == showId)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToList();
             }
-            catch { /* Bỏ qua nếu lỗi đọc file */ }
+            catch
+            {
+            }
         }
 
         private void SaveCommentToJson(MovieComment comment)
@@ -115,56 +190,110 @@ namespace Web.Pages
             try
             {
                 string folderPath = Path.Combine(_env.WebRootPath, "data");
-                if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
 
                 string filePath = Path.Combine(folderPath, "comments.json");
+
                 List<MovieComment> allComments = new();
 
                 if (System.IO.File.Exists(filePath))
                 {
                     string json = System.IO.File.ReadAllText(filePath);
-                    allComments = JsonSerializer.Deserialize<List<MovieComment>>(json) ?? new List<MovieComment>();
+
+                    allComments =
+                        JsonSerializer.Deserialize<List<MovieComment>>(json)
+                        ?? new List<MovieComment>();
                 }
 
                 allComments.Add(comment);
-                System.IO.File.WriteAllText(filePath, JsonSerializer.Serialize(allComments, new JsonSerializerOptions { WriteIndented = true }));
+
+                System.IO.File.WriteAllText(
+                    filePath,
+                    JsonSerializer.Serialize(
+                        allComments,
+                        new JsonSerializerOptions
+                        {
+                            WriteIndented = true
+                        }));
             }
-            catch { /* Bỏ qua nếu lỗi ghi file */ }
+            catch
+            {
+            }
         }
 
-        // (Giữ nguyên hàm LoadFallbackData và ParseCsvLine ở phía dưới như cũ)
-        private void LoadFallbackData(int targetId)
+        private void LoadFallbackData(string targetShowId)
         {
             var filePath = Path.Combine(_env.WebRootPath, "data", "netflix_titles.csv");
-            if (!System.IO.File.Exists(filePath)) return;
+
+            if (!System.IO.File.Exists(filePath))
+                return;
+
             var lines = System.IO.File.ReadAllLines(filePath);
-            if (lines.Length <= 1) return;
+
+            if (lines.Length <= 1)
+                return;
+
             int currentId = 1;
-            var dataLines = lines.Skip(1).Take(100).ToList();
+            var dataLines = lines.Skip(1).ToList();
+
             List<WebContentDto> allMockMovies = new();
+
             foreach (var line in dataLines)
             {
                 var parts = ParseCsvLine(line);
-                if (parts.Count < 12) continue;
-                allMockMovies.Add(new WebContentDto {
-                    Id = currentId++, Type = parts[1].Trim(' ', '"'), Title = parts[2].Trim(' ', '"'),
-                    ReleaseYear = string.IsNullOrWhiteSpace(parts[7]) ? "2022" : parts[7].Trim(' ', '"'),
+
+                if (parts.Count < 12)
+                    continue;
+
+                allMockMovies.Add(new WebContentDto
+                {
+                    Id = currentId++,
+                    ShowId = parts[0].Trim(' ', '"'),
+                    Type = parts[1].Trim(' ', '"'),
+                    Title = parts[2].Trim(' ', '"'),
+                    ReleaseYear = string.IsNullOrWhiteSpace(parts[7]) ? "N/A" : parts[7].Trim(' ', '"'),
                     Duration = string.IsNullOrWhiteSpace(parts[9]) ? "N/A" : parts[9].Trim(' ', '"')
                 });
             }
-            Movie = allMockMovies.FirstOrDefault(m => m.Id == targetId);
-            if (Movie != null) RecommendedMovies = allMockMovies.Where(m => m.Id != targetId && m.Type == Movie.Type).Take(5).ToList();
+
+            Movie = allMockMovies.FirstOrDefault(m => m.ShowId == targetShowId);
+
+            if (Movie != null)
+            {
+                RecommendedMovies = allMockMovies
+                    .Where(m => m.ShowId != targetShowId && m.DisplayType == Movie.DisplayType)
+                    .Take(10)
+                    .ToList();
+            }
         }
 
         private List<string> ParseCsvLine(string csvLine)
         {
-            List<string> tokens = new(); bool inQuotes = false; string token = "";
-            foreach (char c in csvLine) {
-                if (c == '"') inQuotes = !inQuotes;
-                else if (c == ',' && !inQuotes) { tokens.Add(token); token = ""; }
-                else token += c;
+            List<string> tokens = new();
+            bool inQuotes = false;
+            string token = "";
+
+            foreach (char c in csvLine)
+            {
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    tokens.Add(token);
+                    token = "";
+                }
+                else
+                {
+                    token += c;
+                }
             }
-            tokens.Add(token); return tokens;
+
+            tokens.Add(token);
+            return tokens;
         }
     }
 }

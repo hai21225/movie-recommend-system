@@ -9,7 +9,7 @@ df = pd.read_csv(csv_file)
 # Hãy thay đổi các thông số SERVER, DATABASE, UID, PWD cho đúng cấu hình hệ thống của bạn
 conn_str = (
     r"DRIVER={ODBC Driver 17 for SQL Server};"
-    r"SERVER=HAI2\SQLEXPRESS;"        # Tên Server của bạn (VD: localhost hoặc .\SQLEXPRESS)
+    r"SERVER=Admin-PC\SQLEXPRESS;"        # Tên Server của bạn (VD: localhost hoặc .\SQLEXPRESS)
     r"DATABASE=NetflixDb;"    # Tên Database vừa tạo cấu hình ở trên
     #r"UID=YOUR_USERNAME;"              # Tài khoản đăng nhập SQL Server (nếu có)
     #r"PWD=YOUR_PASSWORD;"              # Mật khẩu đăng nhập SQL Server (nếu có)

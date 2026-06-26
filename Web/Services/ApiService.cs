@@ -1,6 +1,5 @@
 using System;
 using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -11,7 +10,6 @@ namespace Web.Services
     {
         private readonly HttpClient _httpClient;
 
-        // TIẾP NHẬN HTTPCLIENT TỪ PROGRAM.CS ĐÃ ĐƯỢC CẤU HÌNH ĐỊA CHỈ BASEURL = 5281
         public ApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
@@ -21,28 +19,34 @@ namespace Web.Services
         {
             try
             {
-                // Chỉ truyền endpoint (VD: /api/genre), KHÔNG NỐI THÊM ĐỊA CHỈ NÀO KHÁC VÀO ĐÂY
                 var response = await _httpClient.GetAsync(endpoint);
-                
-                if (response.IsSuccessStatusCode)
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    if (!string.IsNullOrEmpty(content))
-                    {
-                        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                        return JsonSerializer.Deserialize<T>(content, options);
-                    }
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[LỖI GET] {endpoint} | {response.StatusCode} | {errorMsg}");
+                    return default;
                 }
-                return default;
+
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (string.IsNullOrWhiteSpace(content))
+                    return default;
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                return JsonSerializer.Deserialize<T>(content, options);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\n[LỖI GET] {ex.Message}\n");
+                Console.WriteLine($"[LỖI GET] {endpoint} | {ex.Message}");
                 return default;
             }
         }
 
-        // ĐÃ CHỈNH SỬA LẠI HÀM POST ĐỂ GỬI ĐÚNG ĐỊA CHỈ VÀ TRẢ VỀ STATUS
         public async Task<bool> PostAsync(string endpoint, object data)
         {
             try
@@ -50,30 +54,27 @@ namespace Web.Services
                 var jsonContent = new StringContent(
                     JsonSerializer.Serialize(data),
                     Encoding.UTF8,
-                    "application/json"
-                );
+                    "application/json");
 
-                Console.WriteLine($"[DEBUG] Đang gửi POST tới: {_httpClient.BaseAddress}{endpoint}");
+                Console.WriteLine($"[DEBUG POST] {_httpClient.BaseAddress}{endpoint}");
 
-                // Chỉ truyền chuỗi endpoint (VD: /api/auth/register)
                 var response = await _httpClient.PostAsync(endpoint, jsonContent);
-                
-                if(!response.IsSuccessStatusCode)
+
+                if (!response.IsSuccessStatusCode)
                 {
                     var errorMsg = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[LỖI TỪ API] {errorMsg}");
+                    Console.WriteLine($"[LỖI POST] {endpoint} | {response.StatusCode} | {errorMsg}");
                 }
 
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\n[LỖI KẾT NỐI API POST] Không thể gửi tới {endpoint}\nLý do: {ex.Message}\n");
+                Console.WriteLine($"[LỖI POST] {endpoint} | {ex.Message}");
                 return false;
             }
         }
 
-        // Bổ sung hàm PostAsync trả về object nếu sau này Login cần lấy Token hoặc UserId
         public async Task<T?> PostWithResultAsync<T>(string endpoint, object data)
         {
             try
@@ -81,24 +82,91 @@ namespace Web.Services
                 var jsonContent = new StringContent(
                     JsonSerializer.Serialize(data),
                     Encoding.UTF8,
-                    "application/json"
-                );
+                    "application/json");
+
+                Console.WriteLine($"[DEBUG POST RESULT] {_httpClient.BaseAddress}{endpoint}");
 
                 var response = await _httpClient.PostAsync(endpoint, jsonContent);
 
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return JsonSerializer.Deserialize<T>(content, options);
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[LỖI POST RESULT] {endpoint} | {response.StatusCode} | {errorMsg}");
+                    return default;
                 }
-                return default;
+
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (string.IsNullOrWhiteSpace(content))
+                    return default;
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                return JsonSerializer.Deserialize<T>(content, options);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\n[LỖI POST] {ex.Message}\n");
+                Console.WriteLine($"[LỖI POST RESULT] {endpoint} | {ex.Message}");
                 return default;
             }
+        }
+
+        public async Task<bool> SetLikeStatus(int userId, string showId, bool isLiked)
+        {
+            var data = new
+            {
+                UserId = userId,
+                ShowId = showId,
+                IsLiked = isLiked
+            };
+
+            return await PostAsync("/like", data);
+        }
+
+        public async Task<bool> CheckIsLiked(int userId, string showId)
+        {
+            try
+            {
+                var data = new
+                {
+                    UserId = userId,
+                    ShowId = showId
+                };
+
+                var request = new HttpRequestMessage(HttpMethod.Get, "/is-liked")
+                {
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(data),
+                        Encoding.UTF8,
+                        "application/json")
+                };
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[LỖI CHECK LIKE] /is-liked | {response.StatusCode} | {errorMsg}");
+                    return false;
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+
+                return bool.TryParse(content, out bool result) && result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LỖI CHECK LIKE] {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<T?> GetUserHistory<T>(int userId)
+        {
+            return await GetAsync<T>($"/history/{userId}");
         }
     }
 }
