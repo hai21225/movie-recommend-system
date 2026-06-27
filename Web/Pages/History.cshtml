@@ -1,0 +1,44 @@
+@page
+@model Web.Pages.HistoryModel
+@{
+    ViewData["Title"] = "Phim đã thích";
+}
+
+<div class="container mt-5 pt-5 text-white">
+    <h2 class="fw-bold mb-4">❤️ Phim bạn đã thích</h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-dark text-white border-secondary">
+            @Model.ErrorMessage
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ShowId</th>
+                        <th>Trạng thái</th>
+                        <th>Thời gian thích</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.LikedMovies)
+                    {
+                        <tr>
+                            <td>@item.ShowId</td>
+                            <td>
+                                <span class="badge bg-danger">Đã thích</span>
+                            </td>
+                            <td>
+                                @item.InteractedAt.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

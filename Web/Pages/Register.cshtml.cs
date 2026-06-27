@@ -32,9 +32,7 @@ namespace Web.Pages
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
-            {
                 return Page();
-            }
 
             if (Password != ConfirmPassword)
             {
@@ -42,26 +40,24 @@ namespace Web.Pages
                 return Page();
             }
 
-            // ĐÃ SỬA: Đóng gói đúng 3 trường dữ liệu khớp 100% với RegisterDto của Backend
-            var registerData = new { 
-                Username = Username, 
-                Password = Password, 
-                ConfirmPassword = ConfirmPassword 
+            var registerData = new
+            {
+                Username,
+                Password,
+                ConfirmPassword
             };
 
-            // Gọi hàm POST sang cổng Backend API
-            var isSuccess = await _apiService.PostAsync("/api/auth/register", registerData);
+            var isSuccess = await _apiService.PostAsync(
+                "/api/Auth/register",
+                registerData);
 
             if (isSuccess)
             {
-                // Đăng ký thành công vào DB -> Chuyển hướng sang Login
                 return RedirectToPage("/Login");
             }
-            else
-            {
-                ErrorMessage = "Tên tài khoản đã tồn tại hoặc đăng ký thất bại!";
-                return Page();
-            }
+
+            ErrorMessage = "Tên tài khoản đã tồn tại hoặc đăng ký thất bại!";
+            return Page();
         }
     }
 }

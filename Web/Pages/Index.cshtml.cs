@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
@@ -23,100 +23,184 @@ namespace Web.Pages
         public string ErrorMessage { get; set; } = string.Empty;
         public bool IsLoading { get; set; } = true;
 
-        private const int CurrentUserId = 1;
-
-        public IndexModel(ApiService apiService, IWebHostEnvironment env, ILogger<IndexModel> logger)
+        public IndexModel(
+            ApiService apiService,
+            IWebHostEnvironment env,
+            ILogger<IndexModel> logger)
         {
             _apiService = apiService;
             _env = env;
             _logger = logger;
         }
 
-        public async Task OnGetAsync()
+        public async Task<IActionResult> OnGetAsync()
         {
             IsLoading = true;
             ErrorMessage = string.Empty;
 
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (userId == null || userId <= 0)
+            {
+                return RedirectToPage("/Login");
+            }
+
+            var preferences = await _apiService.GetAsync<List<int>>(
+                $"/api/Genre/user-preference/{userId.Value}");
+
+            if (preferences == null || !preferences.Any())
+            {
+                return RedirectToPage("/ChooseGenres");
+            }
+
             try
             {
-                var resultGenres = await _apiService.GetAsync<List<WebGenresDto>>("/api/genre");
-                if (resultGenres != null && resultGenres.Any()) AllGenres = resultGenres;
+                AllGenres = await _apiService.GetAsync<List<WebGenresDto>>(
+                    "/api/Genre") ?? new();
 
-                var resultFeed = await _apiService.GetAsync<List<WebContentDto>>($"/api/recommend/home-feed?userId={CurrentUserId}&count=20");
-                if (resultFeed != null && resultFeed.Any()) HomeFeeds = resultFeed;
+                HomeFeeds = await _apiService.GetAsync<List<WebContentDto>>(
+                    $"/api/Recommendation/genres/{userId.Value}?limit=20") ?? new();
+
+                int index = 1;
+
+                foreach (var movie in HomeFeeds)
+                {
+                    if (movie.Id <= 0)
+                    {
+                        movie.Id = index;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(movie.ShowId))
+                    {
+                        movie.ShowId = $"movie-{index}";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(movie.Type) &&
+                        !string.IsNullOrWhiteSpace(movie.ContentType))
+                    {
+                        movie.Type = movie.ContentType;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(movie.Type))
+                    {
+                        movie.Type = "Movie";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(movie.ReleaseYear))
+                    {
+                        movie.ReleaseYear = "N/A";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(movie.Duration))
+                    {
+                        movie.Duration = "N/A";
+                    }
+
+                    index++;
+                }
             }
             catch (Exception ex)
             {
-                // [ĐÃ FIX LỖI 1]: Sử dụng biến ex để ghi log hệ thống
-                _logger.LogWarning(ex, "Không kết nối được API Backend, sẽ chuyển sang đọc file CSV.");
+                _logger.LogWarning(
+                    ex,
+                    "Không kết nối được API Backend, sẽ chuyển sang đọc CSV.");
             }
 
-            if (!AllGenres.Any() || !HomeFeeds.Any())
+            if (!HomeFeeds.Any())
             {
                 LoadRealDataFromCsv();
             }
 
-            if (!AllGenres.Any() && !HomeFeeds.Any())
+            if (!HomeFeeds.Any())
             {
-                ErrorMessage = "Hệ thống Backend đang trống dữ liệu và không tìm thấy file dự phòng tại wwwroot/data/netflix_titles.csv";
+                ErrorMessage = "Không tìm thấy dữ liệu phim.";
             }
 
             IsLoading = false;
+
+            return Page();
         }
 
         private void LoadRealDataFromCsv()
         {
             try
             {
-                string filePath = Path.Combine(_env.WebRootPath, "data", "netflix_titles.csv");
-                
-                // [ĐÃ FIX LỖI 2]: Sử dụng System.IO.File để không bị nhầm lẫn với hàm File() của PageModel
-                if (!System.IO.File.Exists(filePath)) return;
+                HomeFeeds.Clear();
+
+                if (!AllGenres.Any())
+                {
+                    AllGenres.Clear();
+                }
+
+                string filePath = Path.Combine(
+                    _env.WebRootPath,
+                    "data",
+                    "netflix_titles.csv");
+
+                if (!System.IO.File.Exists(filePath))
+                    return;
 
                 var lines = System.IO.File.ReadAllLines(filePath);
-                if (lines.Length <= 1) return;
+
+                if (lines.Length <= 1)
+                    return;
 
                 int currentId = 1;
                 HashSet<string> uniqueGenres = new();
-                var dataLines = lines.Skip(1).Take(80).ToList();
 
-                foreach (var line in dataLines)
+                foreach (var line in lines.Skip(1).Take(80))
                 {
                     var parts = ParseCsvLine(line);
-                    if (parts.Count < 12) continue;
 
-                    string type = parts[1].Trim();         
-                    string title = parts[2].Trim();        
-                    string releaseYearStr = parts[7].Trim(); 
-                    string duration = parts[9].Trim();     
-                    string genresStr = parts[10].Trim();   
+                    if (parts.Count < 12)
+                        continue;
 
-                    int.TryParse(releaseYearStr, out int releaseYear);
+                    string showId = parts[0].Trim(' ', '"');
+                    string type = parts[1].Trim(' ', '"');
+                    string title = parts[2].Trim(' ', '"');
+                    string releaseYear = parts[7].Trim(' ', '"');
+                    string duration = parts[9].Trim(' ', '"');
+                    string genres = parts[10].Trim(' ', '"');
 
                     HomeFeeds.Add(new WebContentDto
                     {
                         Id = currentId++,
+                        ShowId = showId,
                         Title = title,
-                        Type = type,
-                        // [ĐÃ FIX LỖI 3]: Đổi thành ReleaseYear chuẩn xác theo DTO của bạn
-                        ReleaseYear = string.IsNullOrEmpty(releaseYearStr) ? "2022" : releaseYearStr,
-                        Duration = string.IsNullOrEmpty(duration) ? "N/A" : duration
+                        Type = string.IsNullOrWhiteSpace(type) ? "Movie" : type,
+                        ReleaseYear = string.IsNullOrWhiteSpace(releaseYear) ? "N/A" : releaseYear,
+                        Duration = string.IsNullOrWhiteSpace(duration) ? "N/A" : duration
                     });
 
-                    var rawGenres = genresStr.Split(',');
-                    foreach (var g in rawGenres)
+                    foreach (var g in genres.Split(','))
                     {
-                        string cleanGenre = g.Replace("\"", "").Trim();
-                        if (!string.IsNullOrEmpty(cleanGenre)) uniqueGenres.Add(cleanGenre);
+                        var clean = g.Replace("\"", "").Trim();
+
+                        if (!string.IsNullOrWhiteSpace(clean))
+                        {
+                            uniqueGenres.Add(clean);
+                        }
                     }
                 }
 
-                int genreId = 1;
-                AllGenres = uniqueGenres.Take(12).Select(g => new WebGenresDto { Id = genreId++, Name = g }).ToList();
+                if (!AllGenres.Any())
+                {
+                    int genreId = 1;
+
+                    AllGenres = uniqueGenres
+                        .OrderBy(x => x)
+                        .Take(20)
+                        .Select(x => new WebGenresDto
+                        {
+                            Id = genreId++,
+                            Name = x
+                        })
+                        .ToList();
+                }
             }
             catch (Exception ex)
-            { 
-                _logger.LogError(ex, "Lỗi phân tích file CSV."); 
+            {
+                _logger.LogError(ex, "Lỗi đọc netflix_titles.csv");
             }
         }
 
@@ -125,12 +209,24 @@ namespace Web.Pages
             List<string> tokens = new();
             bool inQuotes = false;
             string token = "";
+
             foreach (char c in csvLine)
             {
-                if (c == '"') inQuotes = !inQuotes;
-                else if (c == ',' && !inQuotes) { tokens.Add(token); token = ""; }
-                else token += c;
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    tokens.Add(token);
+                    token = "";
+                }
+                else
+                {
+                    token += c;
+                }
             }
+
             tokens.Add(token);
             return tokens;
         }

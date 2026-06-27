@@ -1,4 +1,4 @@
-@page "{id:int}"
+@page "{showId}"
 @model Web.Pages.MovieDetailModel
 @{
     ViewData["Title"] = Model.Movie?.Title ?? "Chi tiết phim";
@@ -9,15 +9,17 @@
     <div class="container my-5 py-5 text-center">
         <i class="bi bi-x-circle text-danger" style="font-size: 4rem;"></i>
         <h4 class="text-white mt-3">@Model.ErrorMessage</h4>
-        <a href="/" class="btn btn-netflix-primary mt-4 px-4 py-2 rounded-1">Quay lại Trang Chủ</a>
+        <a href="/Index" class="btn btn-netflix-primary mt-4 px-4 py-2 rounded-1">Quay lại Trang Chủ</a>
     </div>
 }
 else if (Model.Movie != null)
 {
+    @Html.AntiForgeryToken()
+
     <div class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex justify-content-center align-items-start z-3 overflow-y-auto py-5" style="z-index: 9999 !important; backdrop-filter: blur(5px);">
         <div class="text-white w-100 rounded-3 shadow-lg position-relative mb-5" style="max-width: 1100px; background-color: #181818; border: 1px solid rgba(255,255,255,0.1);">
-            
-            <a href="/" class="position-absolute top-0 end-0 m-3 bg-dark text-white rounded-circle d-flex align-items-center justify-content-center text-decoration-none shadow" style="width: 40px; height: 40px; z-index: 20; border: 2px solid rgba(255,255,255,0.5); transition: transform 0.2s;">
+
+            <a href="/Index" class="position-absolute top-0 end-0 m-3 bg-dark text-white rounded-circle d-flex align-items-center justify-content-center text-decoration-none shadow" style="width: 40px; height: 40px; z-index: 20; border: 2px solid rgba(255,255,255,0.5);">
                 <i class="bi bi-x-lg"></i>
             </a>
 
@@ -29,41 +31,69 @@ else if (Model.Movie != null)
                     <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
                 </video>
 
-                <button id="btn-play-movie" class="position-absolute btn btn-light text-black fw-bold rounded-pill px-4 py-2 shadow-lg d-flex align-items-center gap-2" style="z-index: 10; transition: transform 0.2s;">
-                    <i class="bi bi-play-fill fs-3"></i> <span class="fs-5">Phát Phim</span>
+                <button id="btn-play-movie" class="position-absolute btn btn-light text-black fw-bold rounded-pill px-4 py-2 shadow-lg d-flex align-items-center gap-2" style="z-index: 10;">
+                    <i class="bi bi-play-fill fs-3"></i>
+                    <span class="fs-5">Phát Phim</span>
                 </button>
             </div>
 
             <div class="p-4 p-md-5 pt-2">
                 <div class="row g-5">
                     <div class="col-lg-7">
-                        <h1 class="fw-bolder mb-3 text-white" style="font-size: 2.5rem;">@Model.Movie.Title</h1>
+                        <h1 class="fw-bolder mb-3 text-white" style="font-size: 2.5rem;">
+                            @Model.Movie.Title
+                        </h1>
+
                         <div class="d-flex align-items-center gap-3 mb-4 fs-6 text-light opacity-75">
                             <span class="badge bg-danger fs-6 px-2 py-1">@Model.Movie.Type</span>
                             <span><i class="bi bi-calendar3 me-1"></i> @Model.Movie.ReleaseYear</span>
                             <span><i class="bi bi-hourglass-split me-1"></i> @Model.Movie.Duration</span>
                         </div>
+
                         <p class="mb-4 text-light" style="line-height: 1.8; font-size: 1.05rem; opacity: 0.9;">
-                            Bộ phim siêu phẩm <strong>@Model.Movie.Title</strong> hiện đã có mặt trên hệ thống. Khám phá cốt truyện hấp dẫn và đắm chìm vào những phân cảnh điện ảnh đỉnh cao cùng hệ thống gợi ý AI.
+                            Bộ phim siêu phẩm <strong>@Model.Movie.Title</strong> hiện đã có mặt trên hệ thống.
+                            Khám phá cốt truyện hấp dẫn và đắm chìm vào những phân cảnh điện ảnh đỉnh cao cùng hệ thống gợi ý AI.
                         </p>
 
                         <div class="mb-5 d-flex gap-3">
-                            <button id="btn-like-movie" class="btn btn-outline-light rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold border-2 transition">
-                                <i class="bi bi-hand-thumbs-up fs-5"></i> <span id="like-text">Thích</span>
+                            <button id="btn-like-movie"
+                                    data-showid="@Model.Movie.ShowId"
+                                    data-liked="@Model.IsLiked.ToString().ToLower()"
+                                    class="@(Model.IsLiked ? "btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold border-2 transition" : "btn btn-outline-light rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold border-2 transition")">
+                                @if (Model.IsLiked)
+                                {
+                                    <i class="bi bi-hand-thumbs-up-fill text-danger fs-5"></i>
+                                    <span class="text-black">Đã Thích</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-hand-thumbs-up fs-5"></i>
+                                    <span>Thích</span>
+                                }
                             </button>
                         </div>
 
                         <div>
                             <h5 class="mb-4 fw-bold text-white fs-4">Bình luận</h5>
-                            
+
                             @if (Model.IsLoggedIn)
                             {
                                 <form method="post" asp-page-handler="AddComment" class="bg-dark p-3 rounded-3 border border-secondary border-opacity-25 mb-4 shadow-sm">
                                     <input type="hidden" name="id" value="@Model.Movie.Id" />
-                                    <textarea name="commentText" class="form-control bg-transparent text-white border-0 shadow-none p-0 mb-3" rows="2" placeholder="Cảm nghĩ của @Model.CurrentUser về phim này..." required style="resize: none;"></textarea>
+
+                                    <textarea name="commentText"
+                                              class="form-control bg-transparent text-white border-0 shadow-none p-0 mb-3"
+                                              rows="2"
+                                              placeholder="Cảm nghĩ của @Model.CurrentUser về phim này..."
+                                              required
+                                              style="resize: none;"></textarea>
+
                                     <hr class="border-secondary border-opacity-50 my-2">
+
                                     <div class="text-end mt-2">
-                                        <button type="submit" class="btn btn-light text-black px-4 rounded-pill fw-bold">Đăng bình luận</button>
+                                        <button type="submit" class="btn btn-light text-black px-4 rounded-pill fw-bold">
+                                            Đăng bình luận
+                                        </button>
                                     </div>
                                 </form>
                             }
@@ -84,7 +114,9 @@ else if (Model.Movie != null)
                                         <div class="bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-10 mb-3">
                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                 <span class="fw-bold text-danger">@c.Username</span>
-                                                <small class="text-muted" style="font-size: 0.8rem;">@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                <small class="text-muted" style="font-size: 0.8rem;">
+                                                    @c.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                                </small>
                                             </div>
                                             <p class="mb-0 text-light opacity-90">@c.Text</p>
                                         </div>
@@ -92,7 +124,9 @@ else if (Model.Movie != null)
                                 }
                                 else
                                 {
-                                    <div class="text-center text-muted small fst-italic py-3">Chưa có bình luận nào.</div>
+                                    <div class="text-center text-muted small fst-italic py-3">
+                                        Chưa có bình luận nào.
+                                    </div>
                                 }
                             </div>
                         </div>
@@ -100,13 +134,16 @@ else if (Model.Movie != null)
 
                     <div class="col-lg-5">
                         <h5 class="mb-4 fw-bold text-white fs-4">Phim tương tự</h5>
+
                         <div class="d-flex flex-column gap-3 pe-2" style="max-height: 600px; overflow-y: auto;">
                             @if (Model.RecommendedMovies != null && Model.RecommendedMovies.Count > 0)
                             {
                                 @foreach (var rec in Model.RecommendedMovies)
                                 {
-                                    // ĐÃ ĐỔI LINK SANG TRANG XEM PHIM (/Watch)
-                                    <div class="bg-dark rounded-3 border border-secondary border-opacity-10 p-2 text-decoration-none transition" style="cursor: pointer;" onclick="window.location.href='/Watch/@rec.Id'">
+                                    <div class="bg-dark rounded-3 border border-secondary border-opacity-10 p-2 text-decoration-none transition"
+                                         style="cursor: pointer;"
+                                         onclick="window.location.href='/MovieDetail/@rec.ShowId'">
+
                                         <div class="row g-0 align-items-center">
                                             <div class="col-4">
                                                 <div class="bg-secondary bg-opacity-25 rounded-2 d-flex justify-content-center align-items-center position-relative overflow-hidden" style="height: 80px;">
@@ -114,12 +151,21 @@ else if (Model.Movie != null)
                                                     <img src="https://images.unsplash.com/photo-1485846234645-a62644f84728?w=300&auto=format&fit=crop" class="w-100 h-100 object-fit-cover" style="opacity: 0.5;" />
                                                 </div>
                                             </div>
+
                                             <div class="col-8 ps-3">
-                                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                                    <h6 class="text-white fw-bold mb-0 text-truncate pe-2" title="@rec.Title">@rec.Title</h6>
-                                                </div>
-                                                <p class="text-success mb-1" style="font-size: 0.8rem; font-weight: 500;">Độ phù hợp 98%</p>
-                                                <p class="text-muted mb-0" style="font-size: 0.85rem;">@rec.ReleaseYear <span class="mx-1">•</span> @rec.Duration</p>
+                                                <h6 class="text-white fw-bold mb-1 text-truncate" title="@rec.Title">
+                                                    @rec.Title
+                                                </h6>
+
+                                                <p class="text-success mb-1" style="font-size: 0.8rem; font-weight: 500;">
+                                                    Độ phù hợp 98%
+                                                </p>
+
+                                                <p class="text-muted mb-0" style="font-size: 0.85rem;">
+                                                    @rec.ReleaseYear
+                                                    <span class="mx-1">•</span>
+                                                    @rec.Duration
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -128,7 +174,8 @@ else if (Model.Movie != null)
                             else
                             {
                                 <div class="text-center py-5 text-muted border border-secondary border-opacity-10 rounded-3">
-                                    <i class="bi bi-film fs-1"></i><p class="mt-2 mb-0">Hệ thống AI chưa tìm thấy dữ liệu.</p>
+                                    <i class="bi bi-film fs-1"></i>
+                                    <p class="mt-2 mb-0">Hệ thống AI chưa tìm thấy dữ liệu.</p>
                                 </div>
                             }
                         </div>
@@ -142,35 +189,81 @@ else if (Model.Movie != null)
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // (Chỉ giữ lại Script Nút Phát Video và Nút Like. Logic Bình luận đã được chuyển lên Server C# để lưu vĩnh viễn)
-            const btnPlay = document.getElementById('btn-play-movie');
-            const moviePoster = document.getElementById('movie-poster');
-            const movieVideo = document.getElementById('movie-video');
-            const posterGradient = document.getElementById('poster-gradient');
-            
+            const btnPlay = document.getElementById("btn-play-movie");
+            const moviePoster = document.getElementById("movie-poster");
+            const movieVideo = document.getElementById("movie-video");
+            const posterGradient = document.getElementById("poster-gradient");
+
             if (btnPlay && moviePoster && movieVideo) {
-                btnPlay.addEventListener('click', function () {
-                    moviePoster.classList.add('d-none');
-                    if(posterGradient) posterGradient.classList.add('d-none');
-                    btnPlay.classList.add('d-none');
-                    movieVideo.classList.remove('d-none');
+                btnPlay.addEventListener("click", function () {
+                    moviePoster.classList.add("d-none");
+
+                    if (posterGradient) {
+                        posterGradient.classList.add("d-none");
+                    }
+
+                    btnPlay.classList.add("d-none");
+                    movieVideo.classList.remove("d-none");
                     movieVideo.play();
                 });
             }
 
-            const btnLike = document.getElementById('btn-like-movie');
+            const btnLike = document.getElementById("btn-like-movie");
+
             if (btnLike) {
-                let isLiked = false;
-                btnLike.addEventListener('click', function () {
-                    isLiked = !isLiked;
-                    if (isLiked) {
-                        btnLike.classList.replace('btn-outline-light', 'btn-light');
-                        btnLike.classList.replace('text-white', 'text-black');
-                        btnLike.innerHTML = '<i class="bi bi-hand-thumbs-up-fill text-danger fs-5"></i> <span class="text-black">Đã Thích</span>';
-                    } else {
-                        btnLike.classList.replace('btn-light', 'btn-outline-light');
-                        btnLike.classList.replace('text-black', 'text-white');
-                        btnLike.innerHTML = '<i class="bi bi-hand-thumbs-up fs-5"></i> <span>Thích</span>';
+                let isLiked = btnLike.dataset.liked === "true";
+                const showId = btnLike.dataset.showid;
+
+                btnLike.addEventListener("click", async function () {
+                    try {
+                        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+                        if (!tokenInput) {
+                            alert("Không tìm thấy token bảo mật.");
+                            return;
+                        }
+
+                        if (!showId) {
+                            alert("Không tìm thấy mã phim ShowId.");
+                            return;
+                        }
+
+                        const formData = new FormData();
+                        formData.append("showId", showId);
+                        formData.append("currentIsLiked", isLiked);
+
+                        const response = await fetch("?handler=ToggleLikeAjax", {
+                            method: "POST",
+                            headers: {
+                                "RequestVerificationToken": tokenInput.value
+                            },
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (!result.success) {
+                            alert(result.message || "Không thể cập nhật trạng thái thích phim.");
+                            return;
+                        }
+
+                        isLiked = result.newStatus;
+                        btnLike.dataset.liked = isLiked.toString();
+
+                        if (isLiked) {
+                            btnLike.classList.remove("btn-outline-light");
+                            btnLike.classList.add("btn-light");
+                            btnLike.innerHTML =
+                                '<i class="bi bi-hand-thumbs-up-fill text-danger fs-5"></i> <span class="text-black">Đã Thích</span>';
+                        } else {
+                            btnLike.classList.remove("btn-light");
+                            btnLike.classList.add("btn-outline-light");
+                            btnLike.innerHTML =
+                                '<i class="bi bi-hand-thumbs-up fs-5"></i> <span>Thích</span>';
+                        }
+                    } catch (e) {
+                        console.log(e);
+                        alert("Lỗi khi gọi chức năng thích phim.");
                     }
                 });
             }
