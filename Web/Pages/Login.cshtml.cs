@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Threading.Tasks;
+using Web.Models;
 using Web.Services;
 
 namespace Web.Pages
@@ -9,7 +9,11 @@ namespace Web.Pages
     {
         private readonly ApiService _apiService;
 
-        // Bắt buộc dùng [BindProperty] để HTML có thể map dữ liệu qua thẻ asp-for
+        public LoginModel(ApiService apiService)
+        {
+            _apiService = apiService;
+        }
+
         [BindProperty]
         public string Username { get; set; } = string.Empty;
 
@@ -18,40 +22,43 @@ namespace Web.Pages
 
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public LoginModel(ApiService apiService)
-        {
-            _apiService = apiService;
-        }
-
         public void OnGet()
         {
-            // Chạy khi người dùng truy cập vào trang Đăng nhập
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
             if (!ModelState.IsValid)
-            {
                 return Page();
-            }
 
-            // Đóng gói dữ liệu thành object gửi sang Backend API
-            var loginData = new { Username = Username, Password = Password };
-
-            // Gửi dữ liệu qua API
-            var isSuccess = await _apiService.PostAsync("/api/auth/login", loginData);
-
-            if (isSuccess)
+            var loginData = new
             {
-                // Thành công -> Quay về trang chủ
-                return RedirectToPage("Index");
-            }
-            else
+                Username,
+                Password
+            };
+
+            var user = await _apiService.PostWithResultAsync<UserDto>(
+                "/api/Auth/login",
+                loginData);
+
+            if (user == null || user.UserId <= 0)
             {
-                // Thất bại -> Báo lỗi ra màn hình
                 ErrorMessage = "Tài khoản hoặc mật khẩu không chính xác!";
                 return Page();
             }
+
+            HttpContext.Session.SetInt32("UserId", user.UserId);
+            HttpContext.Session.SetString("Username", user.UserName);
+
+            var preferences = await _apiService.GetAsync<List<int>>(
+                $"/api/Genre/user-preference/{user.UserId}");
+
+            if (preferences == null || !preferences.Any())
+            {
+                return RedirectToPage("/ChooseGenres");
+            }
+
+            return RedirectToPage("/Index");
         }
     }
 }

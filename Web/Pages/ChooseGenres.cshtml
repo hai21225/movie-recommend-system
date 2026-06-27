@@ -1,0 +1,113 @@
+@page
+@model Web.Pages.ChooseGenresModel
+@{
+    ViewData["Title"] = "Chọn sở thích";
+}
+
+<div class="container min-vh-100 d-flex align-items-center justify-content-center text-white">
+    <div class="w-100" style="max-width: 1100px;">
+        <div class="text-center mb-5">
+            <h1 class="fw-bold mb-3">Chọn 3 thể loại bạn yêu thích</h1>
+            <p class="text-muted">
+                Hệ thống sẽ dùng lựa chọn này để đề xuất phim phù hợp với bạn.
+            </p>
+
+            <div class="mt-3">
+                <span class="badge bg-danger px-3 py-2">
+                    Đã chọn: <span id="selectedCount">0</span>/3
+                </span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger text-center">
+                @Model.ErrorMessage
+            </div>
+        }
+
+        <form method="post" id="genreForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+                @foreach (var genre in Model.Genres)
+                {
+                    <div class="col">
+                        <label class="genre-card card bg-dark text-white border-secondary h-100 p-3">
+                            <input type="checkbox"
+                                   name="SelectedGenreIds"
+                                   value="@genre.Id"
+                                   class="genre-checkbox d-none" />
+
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="genre-icon">🎬</span>
+                                <span class="fw-semibold">@genre.Name</span>
+                            </div>
+                        </label>
+                    </div>
+                }
+            </div>
+
+            <div class="text-center mt-4 text-muted small">
+                Chọn đủ 3 thể loại, hệ thống sẽ tự chuyển vào trang chủ.
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .genre-card {
+        cursor: pointer;
+        transition: 0.2s ease;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #181818, #111) !important;
+    }
+
+    .genre-card:hover {
+        transform: translateY(-3px);
+        border-color: #e50914 !important;
+        box-shadow: 0 0 18px rgba(229, 9, 20, 0.35);
+    }
+
+    .genre-card.selected {
+        border-color: #e50914 !important;
+        background: linear-gradient(145deg, #2a0508, #111) !important;
+        box-shadow: 0 0 20px rgba(229, 9, 20, 0.45);
+    }
+
+    .genre-icon {
+        font-size: 1.2rem;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        const checkboxes = document.querySelectorAll('.genre-checkbox');
+        const selectedCount = document.getElementById('selectedCount');
+        const form = document.getElementById('genreForm');
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                const checked = document.querySelectorAll('.genre-checkbox:checked');
+
+                if (checked.length > 3) {
+                    this.checked = false;
+                    alert('Bạn chỉ được chọn đúng 3 thể loại!');
+                    return;
+                }
+
+                checkboxes.forEach(item => {
+                    item.closest('.genre-card').classList.toggle('selected', item.checked);
+                });
+
+                selectedCount.textContent = checked.length;
+
+                if (checked.length === 3) {
+                    setTimeout(() => {
+                        form.submit();
+                    }, 400);
+                }
+            });
+        });
+    </script>
+}

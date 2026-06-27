@@ -1,39 +1,46 @@
 @page
 @model Web.Pages.LoginModel
 @{
-    ViewData["Title"] = "Đăng Nhập";
+    ViewData["Title"] = "Đăng Nhập - Netflix";
 }
 
-<div class="auth-container">
-    <div class="card auth-card text-white">
+<!-- Vùng bọc ngoài để căn giữa và tạo hình nền -->
+<div class="auth-wrapper">
+    
+    <!-- Hộp Form lơ lửng gom nội dung gọn gàng -->
+    <div class="card auth-card-premium">
         
-        <h2 class="text-center fw-bold text-danger mb-4">Đăng Nhập</h2>
+        <h2 class="auth-header-title">Đăng Nhập</h2>
 
+        <!-- Khối hiển thị thông báo lỗi nếu nhập sai -->
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
-            <div class="alert alert-danger p-2 small mb-3" role="alert">
-                <i class="bi bi-x-circle-fill me-2"></i> @Model.ErrorMessage
+            <div class="alert alert-danger bg-dark text-white border-danger p-2 small mb-4 rounded d-flex align-items-center" role="alert">
+                <i class="bi bi-x-circle-fill text-danger me-2"></i> @Model.ErrorMessage
             </div>
         }
 
+        <!-- Khởi động Form -->
         <form method="post">
             <div class="mb-3">
-                <label class="form-label text-muted small">Tên tài khoản (Username)</label>
-                <input type="text" asp-for="Username" class="form-control form-input-custom" required />
+                <label class="auth-label-small">Tên tài khoản (Username)</label>
+                <input type="text" asp-for="Username" class="form-control auth-input-custom" placeholder="Nhập tài khoản của bạn..." required />
             </div>
 
             <div class="mb-4">
-                <label class="form-label text-muted small">Mật khẩu (Password)</label>
-                <input type="password" asp-for="Password" class="form-control form-input-custom" required />
+                <label class="auth-label-small">Mật khẩu (Password)</label>
+                <input type="password" asp-for="Password" class="form-control auth-input-custom" placeholder="Nhập mật khẩu..." required />
             </div>
 
-            <button type="submit" class="btn btn-netflix w-100 shadow-sm mb-3">
+            <!-- Nút bấm submit bo góc rộng theo form -->
+            <button type="submit" class="btn btn-auth-submit">
                 Đăng Nhập
             </button>
         </form>
 
-        <div class="text-center mt-3 text-muted small">
-            Bạn mới tham gia hệ thống? <a href="/Register" class="text-white fw-bold text-decoration-none">Đăng ký ngay</a>
+        <!-- Phần chân hướng dẫn sang trang Đăng Ký -->
+        <div class="text-start mt-4 auth-footer-text">
+            Bạn mới tham gia hệ thống? <a href="/Register" class="auth-link-highlight">Đăng ký ngay</a>
         </div>
 
     </div>
